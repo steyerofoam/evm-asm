@@ -3,6 +3,7 @@ use std::env;
 use std::fs;
 use std::process;
 
+mod parser;
 mod tokenizer;
 
 fn print_usage(pname: &str, opts: Options) {
@@ -52,8 +53,14 @@ fn main() {
 			process::exit(exitcode::DATAERR);
 		};
 
-		for token in tokens {
+		for token in &tokens {
 			println!("{token}");
 		}
+
+		let parse_result = parser::parse(tokens);
+		let Ok(commands) = parse_result else {
+			eprintln!("Parser error: {}", parse_result.err().unwrap());
+			process::exit(exitcode::DATAERR);
+		};
 	}
 }
