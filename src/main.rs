@@ -1,8 +1,10 @@
+use base64::{Engine as _, engine::general_purpose};
 use getopts::Options;
 use std::env;
 use std::fs;
 use std::process;
 
+mod codegen;
 mod parser;
 mod tokenizer;
 
@@ -59,8 +61,8 @@ fn main() {
 			process::exit(exitcode::DATAERR);
 		};
 
-		for command in &commands {
-			println!("{command}");
-		}
+		let bytecode = codegen::generate(commands);
+
+		println!("{}", general_purpose::URL_SAFE_NO_PAD.encode(bytecode));
 	}
 }

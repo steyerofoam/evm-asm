@@ -8,6 +8,7 @@ pub struct State {
 	tokens: Vec<Token>
 }
 
+#[repr(u8)]
 #[derive(Clone, PartialEq)]
 pub enum Value {
 	Nil,
@@ -200,13 +201,6 @@ fn accept_bool(state: &State) -> bool {
 			false
 		}
 	}
-}
-
-fn expect(state: &State, typ: &TokenType) -> Result<(), String> {
-	if !accept(state, typ) {
-		return Err(format!("Unexpected token: expected {}, got {} on {}", typ, last(state).typ, last(state).loc));
-	}
-	Ok(())
 }
 
 fn expect_num(state: &State) -> Result<f64, String> {
