@@ -10,8 +10,10 @@ pub struct State {
 
 #[derive(Clone, PartialEq)]
 pub enum Value {
+	Nil,
 	Number(f64),
 	String(String),
+	Boolean(bool),
 	Function(Vec<Command>),
 	Array(Vec<Value>)
 }
@@ -22,7 +24,7 @@ pub enum Command {
 	Push(Value),
 	Dup,
 	Swap,
-	ILoad(u64, Value),
+	ILoad(u8, Value),
 	Load,
 	Drop,
 	Query,
@@ -59,8 +61,10 @@ pub enum Command {
 impl fmt::Display for Value {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		match self {
+			Value::Nil             => write!(f, "nil"),
 			Value::Number(val)     => write!(f, "{}", val),
 			Value::String(val)     => write!(f, "\"{}\"", val),
+			Value::Boolean(val)    => write!(f, "{}", val),
 			Value::Function(cmds)  => {
 				let mut string = "{".to_owned();
 
@@ -186,11 +190,38 @@ fn accept_num(state: &State) -> bool {
 	}
 }
 
+fn accept_bool(state: &State) -> bool {
+	match next(state).typ {
+		TokenType::Boolean(_) => {
+			true
+		},
+		_ => {
+			rewind(state, 1);
+			false
+		}
+	}
+}
+
 fn expect(state: &State, typ: &TokenType) -> Result<(), String> {
 	if !accept(state, typ) {
 		return Err(format!("Unexpected token: expected {}, got {} on {}", typ, last(state).typ, last(state).loc));
 	}
 	Ok(())
+}
+
+fn expect_num(state: &State) -> Result<f64, String> {
+	match next(state).typ {
+		TokenType::Number(val) => {
+			match val.parse::<f64>() {
+				Ok(parsed) => Ok(parsed),
+				Err(error) => Err(format!("Failed to parse number: {}", error))
+			}
+		},
+		_ => {
+			rewind(state, 1);
+			Err(format!("Unexpected token: expected number, got {} on {}", last(state).typ, last(state).loc))
+		}
+	}
 }
 
 fn parse_value(state: &State) -> Result<Value, String> {
@@ -203,6 +234,9 @@ fn parse_value(state: &State) -> Result<Value, String> {
 	} else if accept_str(state) {
 		let TokenType::String(val) = last(state).typ else {unreachable!()};
 		Ok(Value::String(val))
+	} else if accept_bool(state) {
+		let TokenType::Boolean(val) = last(state).typ else {unreachable!()};
+		Ok(Value::Boolean(val))
 	} else if accept(state, &TokenType::LeftSquare) {
 		let mut values = vec![];
 
@@ -219,6 +253,8 @@ fn parse_value(state: &State) -> Result<Value, String> {
 		}
 
 		Ok(Value::Function(commands))
+	} else if accept(state, &TokenType::Nil) {
+		Ok(Value::Nil)
 	} else {
 		let t = next(state);
 
@@ -230,6 +266,61 @@ fn parse_command(state: &State) -> Result<Command, String> {
 	let t = next(state);
 
 	match t.typ {
+		TokenType::Push => {
+			let value = parse_value(state)?;
+
+			Ok(Command::Push(value))
+		},
+		TokenType::ILoad => {
+			let reg = expect_num(state)?;
+
+			if reg != reg.trunc() {
+				return Err(format!("Register is not an integer: {} on {}", reg, last(state).loc))
+			}
+
+			let reg = reg as u64;
+
+			if !(0..16).contains(&reg) {
+				return Err(format!("Register must be between 0-15: {} on {}", reg, last(state).loc))
+			}
+
+			let value = parse_value(state)?;
+
+			Ok(Command::ILoad(reg as u8, value))
+		},
+		TokenType::Dup => {Ok(Command::Dup)},
+		TokenType::Swap => {Ok(Command::Swap)},
+		TokenType::Load => {Ok(Command::Load)},
+		TokenType::Drop => {Ok(Command::Drop)},
+		TokenType::Query => {Ok(Command::Query)},
+		TokenType::Info => {Ok(Command::Info)},
+		TokenType::If => {Ok(Command::If)},
+		TokenType::Each => {Ok(Command::Each)},
+		TokenType::Reduce => {Ok(Command::Reduce)},
+		TokenType::Reverse => {Ok(Command::Reverse)},
+		TokenType::Map => {Ok(Command::Map)},
+		TokenType::Filter => {Ok(Command::Filter)},
+		TokenType::Call => {Ok(Command::Call)},
+		TokenType::ToStr => {Ok(Command::ToStr)},
+		TokenType::ToNum => {Ok(Command::ToNum)},
+		TokenType::Add => {Ok(Command::Add)},
+		TokenType::Sub => {Ok(Command::Sub)},
+		TokenType::Mul => {Ok(Command::Mul)},
+		TokenType::Div => {Ok(Command::Div)},
+		TokenType::Mod => {Ok(Command::Mod)},
+		TokenType::Eq => {Ok(Command::Eq)},
+		TokenType::NotEq => {Ok(Command::NotEq)},
+		TokenType::Greater => {Ok(Command::Greater)},
+		TokenType::GreaterEq => {Ok(Command::GreaterEq)},
+		TokenType::Less => {Ok(Command::Less)},
+		TokenType::LessEq => {Ok(Command::LessEq)},
+		TokenType::And => {Ok(Command::And)},
+		TokenType::Or => {Ok(Command::Or)},
+		TokenType::Not => {Ok(Command::Not)},
+		TokenType::Concat => {Ok(Command::Concat)},
+		TokenType::Match => {Ok(Command::Match)},
+		TokenType::Split => {Ok(Command::Split)},
+		TokenType::Iota => {Ok(Command::Iota)},
 		_ => {
 			Err(format!("Unexpected token {} on {}", t.typ, t.loc))
 		}

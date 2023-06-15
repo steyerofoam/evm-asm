@@ -64,50 +64,50 @@ pub enum TokenType {
 
 fn get_token_name(typ: &TokenType) -> &str {
 	match typ {
-		TokenType::Eof           => "end-of-file",
-		TokenType::Number(x)     => x,
-		TokenType::String(x)     => x,
-		TokenType::Boolean(x)    => if *x {"true"} else {"false"},
-		TokenType::Nil           => "nil",
-		TokenType::LeftSquare    => "[",
-		TokenType::RightSquare   => "]",
-		TokenType::LeftCurly     => "{",
-		TokenType::RightCurly    => "}",
-		TokenType::Push          => "push",
-		TokenType::Dup           => "dup",
-		TokenType::Swap          => "swap",
-		TokenType::ILoad         => "iload",
-		TokenType::Load          => "load",
-		TokenType::Drop          => "drop",
-		TokenType::Query         => "query",
-		TokenType::Info          => "info",
-		TokenType::If            => "if",
-		TokenType::Each          => "each",
-		TokenType::Reduce        => "reduce",
-		TokenType::Reverse       => "reverse",
-		TokenType::Map           => "map",
-		TokenType::Filter        => "filter",
-		TokenType::Call          => "call",
-		TokenType::ToStr         => "tostr",
-		TokenType::ToNum         => "tonum",
-		TokenType::Add           => "+",
-		TokenType::Sub           => "-",
-		TokenType::Mul           => "*",
-		TokenType::Div           => "/",
-		TokenType::Mod           => "%",
-		TokenType::Eq            => "=",
-		TokenType::NotEq         => "!=",
-		TokenType::Greater       => ">",
-		TokenType::GreaterEq     => ">=",
-		TokenType::Less          => "<",
-		TokenType::LessEq        => "<=",
-		TokenType::And           => "and",
-		TokenType::Or            => "or",
-		TokenType::Not           => "not",
-		TokenType::Concat        => "concat",
-		TokenType::Match         => "match",
-		TokenType::Split         => "split",
-		TokenType::Iota          => "iota"
+		TokenType::Eof         => "end-of-file",
+		TokenType::Number(x)   => x,
+		TokenType::String(x)   => x,
+		TokenType::Boolean(x)  => if *x {"true"} else {"false"},
+		TokenType::Nil         => "nil",
+		TokenType::LeftSquare  => "[",
+		TokenType::RightSquare => "]",
+		TokenType::LeftCurly   => "{",
+		TokenType::RightCurly  => "}",
+		TokenType::Push        => "push",
+		TokenType::Dup         => "dup",
+		TokenType::Swap        => "swap",
+		TokenType::ILoad       => "iload",
+		TokenType::Load        => "load",
+		TokenType::Drop        => "drop",
+		TokenType::Query       => "query",
+		TokenType::Info        => "info",
+		TokenType::If          => "if",
+		TokenType::Each        => "each",
+		TokenType::Reduce      => "reduce",
+		TokenType::Reverse     => "reverse",
+		TokenType::Map         => "map",
+		TokenType::Filter      => "filter",
+		TokenType::Call        => "call",
+		TokenType::ToStr       => "tostr",
+		TokenType::ToNum       => "tonum",
+		TokenType::Add         => "+",
+		TokenType::Sub         => "-",
+		TokenType::Mul         => "*",
+		TokenType::Div         => "/",
+		TokenType::Mod         => "%",
+		TokenType::Eq          => "=",
+		TokenType::NotEq       => "!=",
+		TokenType::Greater     => ">",
+		TokenType::GreaterEq   => ">=",
+		TokenType::Less        => "<",
+		TokenType::LessEq      => "<=",
+		TokenType::And         => "and",
+		TokenType::Or          => "or",
+		TokenType::Not         => "not",
+		TokenType::Concat      => "concat",
+		TokenType::Match       => "match",
+		TokenType::Split       => "split",
+		TokenType::Iota        => "iota"
 	}
 }
 
@@ -189,7 +189,10 @@ pub fn tokenize(char_str: &str, filename: &str) -> Result<Vec<Token>, String> {
 		"concat".to_owned() => TokenType::Concat,
 		"match".to_owned() => TokenType::Match,
 		"split".to_owned() => TokenType::Split,
-		"iota".to_owned() => TokenType::Iota
+		"iota".to_owned() => TokenType::Iota,
+		"true".to_owned() => TokenType::Boolean(true),
+		"false".to_owned() => TokenType::Boolean(false),
+		"nil".to_owned() => TokenType::Nil
 	};
 
 	macro_rules! here {
@@ -325,6 +328,8 @@ pub fn tokenize(char_str: &str, filename: &str) -> Result<Vec<Token>, String> {
 
 				if op_map.contains_key(&buffer) {
 					tokens.push(Token::new(op_map[&buffer].clone(), Loc {line, col: scol, filename: filename.to_string()}))
+				} else {
+					return Err(format!("Unexpected identifier {} on {}", buffer, Loc {line: line, col: scol, filename: filename.to_string()}));
 				}
 
 				buffer.clear();
@@ -364,6 +369,8 @@ pub fn tokenize(char_str: &str, filename: &str) -> Result<Vec<Token>, String> {
 
 			if op_map.contains_key(&buffer) {
 				tokens.push(Token::new(op_map[&buffer].clone(), Loc {line, col: scol, filename: filename.to_string()}))
+			} else {
+				return Err(format!("Unexpected identifier {} on {}", buffer, Loc {line: line, col: scol, filename: filename.to_string()}));
 			}
 
 			buffer.clear();
